@@ -1,112 +1,105 @@
 
-/*
-// Moving multiple items
-// ****************************** make moving landscape
-var count = 300;
+var amount = 5;
+var height = 20;
+var pathAmount = 5;
+var pathHolder = [];
 
-var path = new Path.Circle({
-    center: [0,0],
-    radius: 3,
-    fillColor: 'white',
-    strokeColor: 'black'
-});
-
-var symbol = new Symbol(path);
-
-for (var i = 0; i < count; i++) {
-    var center = Point.random() * view.size;
-    var placedSymbol = symbol.place(center);
-    placedSymbol.scale(i / count);
-}
-
-function onFrame(event) {
-  // Snow
-  for (var i = 0; i < count; i++) {
-    var item = project.activeLayer.children[i];
-    item.position.y += item.bounds.height / 5;
-
-    if (item.bounds.bottom > view.size.height) {
-      item.position.y = -item.bounds.height;
-    }
-  }
-
-  // horizontal
-  /*for (var i = 0; i < count; i++) {
-    var item = project.activeLayer.children[i];
-    item.position.x += item.bounds.width / 5;
-
-    if (item.bounds.left > view.size.width) {
-      item.position.x = -item.bounds.width;
-    }
-  }*/
-
-  //Random
-  /*for (var i = 0; i < count; i++) {
-    var item = project.activeLayer.children[i];
-    item.position.x += item.bounds.width / 5;
-
-    if (item.bounds.left > view.size.width) {
-      if (i % 20 === 0) {
-        item.position.y = Point.random().y * view.size.height;
-      }
-      item.position.x = -item.bounds.width;
-    }
-  }*/
-/*}*/
-
-
-
-
-// Animating Path Segments
-// **************************** Make multiple of these below each other to simulate landscape
-function makePath(title) {
-  var newPath = new Path({
-      name: title,
-      strokeColor: 'black',
+function createPath(index) {
+  var path = new Path({
+      name: index,
+      strokeColor: '#efefef',
       strokeWidth: 1,
-      strokeCap: 'round'
+      opacity: index / 4
   });
 
-  return newPath;
+  return applyGradient(path);
 }
 
-var amount = 4;
-var height = 60;
-var path = makePath(1);
-var path2 = makePath(2);
-var path3 = makePath(3);
+function applyGradient(pathObj) {
+  var topLeft     = new Point(0, 1) * view.size;
+  var bottomRight = new Point(1, 1) * view.size;
 
-/*var group = new Group([path, path2, path3]);
-console.log('group', group);*/
+  pathObj.fillColor = {
+    gradient: {
+        stops: [
+          ['#0066b3',0],
+          ['#f392b8',0.5],
+          ['#efefef',0.95]
+        ]
+    },
+    origin: topLeft,
+    destination: bottomRight
+  }
 
-for (var i = 0; i <= amount; i++) {
-    addSegments(path);
-    addSegments(path2);
-    addSegments(path3);
+  return pathObj;
+}
+
+function setSegments(wavePath) {
+  for (var i = 0; i <= amount; i++) {
+      wavePath.add(new Point(i / amount, 0.5) * view.size);
+      wavePath.segments[i].point.y = wavePath.segments[i].point.y / 2;
+  }
+
+  wavePath.add(new Point(1, 1) * view.size);
+  wavePath.add(new Point(0, 1) * view.size);
+  wavePath.closed = true;
+  return wavePath;
+}
+
+function resetSegments(wavePath) {
+  for (var i = 0; i <= amount; i++) {
+      console.log('path >>', wavePath.segments[i]);
+      wavePath.segments[i].point.x = i / amount * view.size.width;
+      wavePath.segments[i].point.y = wavePath.segments[i].point.y / 2;
+  }
+
+  wavePath.segments[amount + 1].point.x = (1 * view.size.width);
+  wavePath.segments[amount + 1].point.y = (1 * view.size.height);
+
+  wavePath.segments[amount + 2].point.x = (0 * view.size.width);
+  wavePath.segments[amount + 2].point.y = (1 * view.size.height);
+  return wavePath;
+}
+
+function createWaves() {
+  if (pathHolder.length > 0) {
+    for (var i = 0; i < pathHolder.length; i++) {
+      pathHolder[i] = resetSegments(pathHolder[i]);
+      pathHolder[i] = applyGradient(pathHolder[i]);
+    }
+
+  } else {
+    for (var i = 0; i < pathAmount; i++) {
+      var newPath = createPath(i + 1);
+          newPath = setSegments(newPath);
+      pathHolder[i] = newPath;
+    }
+  }
 }
 
 function onFrame(event) {
     for (var i = 0; i <= amount; i++) {
-      animatePaths(event, path, i);
-      animatePaths(event, path2, i);
-      animatePaths(event, path3, i);
+      animatePaths(event, pathHolder, i);
     }
-
-    path.smooth();
-    path2.smooth();
-    path3.smooth();
 }
 
+function animatePaths(event, pathObj, index) {
+  for (var i = 0; i < pathObj.length; i++) {
+    var obj = pathObj[i]
+    var segment = obj.segments[index];
+    var increment
 
-function addSegments(pathName) {
-  return pathName.add(new Point(i / amount, 1) * view.size);
+    var increment = index % 3 ? 2 : 3;
+    var sinus = Math.sin(event.time * increment + index);
+    sinus *= height;
+
+    var stepHeight = (pathObj.length - i) * ((10 + i) * 5);
+    segment.point.y = (sinus + (view.size.height / 1.5) - stepHeight);
+  }
 }
 
-function animatePaths(event, pathName, index) {
-  var segment = pathName.segments[index];
-  var increment = index === 2 || index === 5 ? 1 : 3;
-  var sinus = Math.sin(event.time * increment + index);
+createWaves();
 
-  return segment.point.y = sinus * height + (pathName.name * 75);
-  
+function onResize(event) {
+    createWaves();
 }
