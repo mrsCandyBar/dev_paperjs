@@ -1,0 +1,13 @@
+{
+	"name": "dev_template",
+	"version": "0.0.3",
+	"description": "Playing around with Paper Js",
+	"license": "BSD-3-Clause",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/mrsCandyBar/dev_paperjs"
+	},
+	"dependencies": {
+		"paper": "^0.11.4"
+	}
+}
